@@ -692,6 +692,10 @@ void GazeboMavlinkInterface::ImuCallback(ImuPtr& imu_message) {
   //gzerr << "got pose: " << T_W_I.rot << "\n";
   float declination = get_mag_declination(lat_rad, lon_rad);
 
+  // rotate mag field to simulate ground based anomaly
+  float decl_error = 0.5f * fmaxf(fminf((0.5f + pos_n.z),0.5f),0.0f) / 0.5f;
+  declination += decl_error;
+
   math::Quaternion q_dn(0.0, 0.0, declination);
   math::Vector3 mag_n = q_dn.RotateVectorReverse(mag_d_);
 
