@@ -517,6 +517,7 @@ void GazeboMavlinkInterface::ImuCallback(ImuPtr& imu_message) {
 
     // generate Gaussian noise sequence using polar form of Box-Muller transformation
     double x1, x2, w, y1;
+    static double pstatic_offset = 0.0;
     if (!baro_rnd_use_last_) {
       do {
 	x1 = 2.0 * ((double)rand() / (double)RAND_MAX) - 1.0;
@@ -535,7 +536,8 @@ void GazeboMavlinkInterface::ImuCallback(ImuPtr& imu_message) {
     }
 
     // Apply 1 Pa RMS noise
-    float abs_pressure_noise = 1.0f * (float)y1;
+    pstatic_offset += 0.001;
+    float abs_pressure_noise = 1.0f * (float)y1 + pstatic_offset;
     sensor_msg.abs_pressure += abs_pressure_noise;
 
     // convert to hPa
