@@ -553,6 +553,22 @@ void GazeboMavlinkInterface::ImuCallback(ImuPtr& imu_message) {
     } else {
       sensor_msg.diff_pressure = 0.005f*rho*vel_b.X()*vel_b.X();
     }
+    sensor_msg.diff_pressure -= 10.0f;
+
+    // block airspeed sensor immediately after takeoff
+    // clear blockage afer 30 seconds
+    static common::Time fail_time = 0.0;
+    static bool faulty = false;
+    if (faulty || ((pos_n.Z() < -5.0f) && (fail_time == 0.0))) {
+	    sensor_msg.diff_pressure = -10.0f;
+	    if (!faulty) {
+		    fail_time = world_->GetSimTime();
+		    faulty = true;
+	    }
+    }
+    if ((world_->SimTime() - fail_time) > 30.0) {
+	    faulty = false;
+    }
 
     // calculate temperature in Celsius
     sensor_msg.temperature = temperature_local - 273.0f;
