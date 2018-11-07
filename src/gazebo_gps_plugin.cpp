@@ -111,6 +111,14 @@ void GpsPlugin::OnUpdate(const common::UpdateInfo&){
 #endif
   ignition::math::Vector3d& pos_W_I = T_W_I.Pos();           // Use the models' world position for GPS and groundtruth
 
+  // implement a model of a circular GPS exclsuion zone with a radius of 10m and a height of 5m
+  float radius2 = pos_W_I.X()*pos_W_I.X() + pos_W_I.Y()*pos_W_I.Y();
+  if (!gpsBlocked && (radius2 < radiusLim*radiusLim) && (pos_W_I.Z() < hgtLim)) {
+    gpsBlocked = true;
+  } else if (gpsBlocked && ((radius2 > 1.4f * radiusLim*radiusLim) || (pos_W_I.Z() > 1.2f * hgtLim))) {
+    gpsBlocked = false;
+  }
+
   // reproject position without noise into geographic coordinates
   auto latlon_gt = reproject(pos_W_I);
 
@@ -157,9 +165,27 @@ void GpsPlugin::OnUpdate(const common::UpdateInfo&){
   auto pos_with_noise = pos_W_I + noise_gps_pos + gps_bias;
   auto latlon = reproject(pos_with_noise);
 
-  // standard deviation TODO: add a way of computing this
-  std_xy = 1.0;
-  std_z = 1.0;
+  // standard deviation
+  if (gpsBlocked) {
+    // assume reported velocity error grows linearly at 2.0 m/s/s when GPS lock is lost
+    std_vxyz += 2.0 * dt;
+    // assume reported positon error grows with the integral of velocity error
+    std_xy += std_vxyz * dt;
+  } else {
+    // assume reported accuracy asymptotically approaches the best value with a time constant
+    std_xy = fmin(std_xy, std_xy_max);
+    double alpha = fmin(dt * pos_recovery_tconst, 1.0);
+    double beta = 1.0 - alpha;
+    std_xy = alpha * std_xy_min + beta * std_xy;
+
+    std_vxyz = fmin(std_vxyz, std_vxyz_max);
+    alpha = fmin(dt * vel_recovery_tconst, 1.0);
+    beta = 1.0 - alpha;
+    std_vxyz = alpha * std_vxyz_min + beta * std_vxyz;
+  }
+
+  // assume vertical accuracy is half horizontal
+  std_z = 2.0 * std_xy;
 
   // fill SITLGps msg
   gps_msg.set_time_usec(current_time.Double() * 1e6);
@@ -168,10 +194,21 @@ void GpsPlugin::OnUpdate(const common::UpdateInfo&){
   gps_msg.set_altitude(pos_W_I.Z() + alt_home + noise_gps_pos.Z() + gps_bias.Z());
   gps_msg.set_eph(std_xy);
   gps_msg.set_epv(std_z);
+  gps_msg.set_evh(std_vxyz);
   gps_msg.set_velocity(velocity_current_W_xy.Length());
   gps_msg.set_velocity_east(velocity_current_W.X() + noise_gps_vel.Y());
   gps_msg.set_velocity_north(velocity_current_W.Y() + noise_gps_vel.X());
   gps_msg.set_velocity_up(velocity_current_W.Z() + noise_gps_vel.Z());
+
+  // primitive all or nothing model of GPS satellite count and fix mode
+  // TODO - stepped transition
+  if (gpsBlocked) {
+    gps_msg.set_nsat(0);
+    gps_msg.fix_type(0);
+  } else {
+    gps_msg.set_nsat(10);
+    gps_msg.fix_type(3);
+  }
 
   // add msg to buffer
   gps_delay_buffer.push(gps_msg);

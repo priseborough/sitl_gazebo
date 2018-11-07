@@ -641,6 +641,8 @@ void GazeboMavlinkInterface::GpsCallback(GpsPtr& gps_msg){
   hil_gps_msg.alt = gps_msg->altitude() * 1000.0;
   hil_gps_msg.eph = gps_msg->eph() * 100.0;
   hil_gps_msg.epv = gps_msg->epv() * 100.0;
+  // TODO we need a way of sending a velocity error estimate
+  //hil_gps_msg.evh = gps_msg->evh() * 100.0;
   hil_gps_msg.vel = gps_msg->velocity() * 100.0;
   hil_gps_msg.vn = gps_msg->velocity_north() * 100.0;
   hil_gps_msg.ve = gps_msg->velocity_east() * 100.0;

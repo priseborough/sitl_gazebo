@@ -117,6 +117,7 @@ private:
   // gps noise parameters
   double std_xy;    // meters
   double std_z;     // meters
+  double std_vxyz;  // metres/sec
   std::default_random_engine rand_;
   std::normal_distribution<float> randn_;
   static constexpr double gps_corellation_time = 60.0;    // s
@@ -126,6 +127,19 @@ private:
   static constexpr double gps_z_noise_density = 4e-4;     // (m) / sqrt(hz)
   static constexpr double gps_vxy_noise_density = 2e-1;   // (m/s) / sqrt(hz)
   static constexpr double gps_vz_noise_density = 4e-1;    // (m/s) / sqrt(hz)
+  static constexpr double pos_recovery_tconst = 1.0;      // (s)
+  static constexpr double vel_recovery_tconst = 0.5;      // (s)
+  static constexpr double std_xy_min = 1.5;               // (m)
+  static constexpr double std_vxyz_min = 0.5;             // (m/s)
+  static constexpr double std_xy_max = 150.0;             // (m)
+  static constexpr double std_vxyz_max = 2.5;             // (m/s)
+
+  // GPS blockage parameters and variables
+  bool gpsBlocked = false;
+  static constexpr double radiusLim = 10.0f;
+  static constexpr double hgtLim = 5.0f;
+
+
 };     // class GAZEBO_VISIBLE GpsPlugin
 }      // namespace gazebo
 #endif // _GAZEBO_GPS_PLUGIN_HH_
