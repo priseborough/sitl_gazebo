@@ -635,7 +635,16 @@ void GazeboMavlinkInterface::GpsCallback(GpsPtr& gps_msg){
   // fill HIL GPS Mavlink msg
   mavlink_hil_gps_t hil_gps_msg;
   hil_gps_msg.time_usec = gps_msg->time_usec();
-  hil_gps_msg.fix_type = 3;
+  hil_gps_msg.satellites_visible = gps_msg->nsats();
+  if (hil_gps_msg.satellites_visible >= 4) {
+    hil_gps_msg.fix_type = 3;
+  } else if (hil_gps_msg.satellites_visible == 3) {
+    hil_gps_msg.fix_type = 2;
+  } else if (hil_gps_msg.satellites_visible >= 1) {
+    hil_gps_msg.fix_type = 1;
+  } else {
+    hil_gps_msg.fix_type = 0;
+  }
   hil_gps_msg.lat = gps_msg->latitude_deg() * 1e7;
   hil_gps_msg.lon = gps_msg->longitude_deg() * 1e7;
   hil_gps_msg.alt = gps_msg->altitude() * 1000.0;
@@ -649,7 +658,6 @@ void GazeboMavlinkInterface::GpsCallback(GpsPtr& gps_msg){
   ignition::math::Angle cog(atan2(gps_msg->velocity_east(), gps_msg->velocity_north()));
   cog.Normalize();
   hil_gps_msg.cog = static_cast<uint16_t>(GetDegrees360(cog) * 100.0);
-  hil_gps_msg.satellites_visible = 10;
 
   // send HIL_GPS Mavlink msg
   mavlink_message_t msg;
