@@ -635,21 +635,35 @@ void GazeboMavlinkInterface::GpsCallback(GpsPtr& gps_msg){
   // fill HIL GPS Mavlink msg
   mavlink_hil_gps_t hil_gps_msg;
   hil_gps_msg.time_usec = gps_msg->time_usec();
-  hil_gps_msg.fix_type = 3;
-  hil_gps_msg.lat = gps_msg->latitude_deg() * 1e7;
-  hil_gps_msg.lon = gps_msg->longitude_deg() * 1e7;
-  hil_gps_msg.alt = gps_msg->altitude() * 1000.0;
-  hil_gps_msg.eph = gps_msg->eph() * 100.0;
-  hil_gps_msg.epv = gps_msg->epv() * 100.0;
-  hil_gps_msg.vel = gps_msg->velocity() * 100.0;
-  hil_gps_msg.vn = gps_msg->velocity_north() * 100.0;
-  hil_gps_msg.ve = gps_msg->velocity_east() * 100.0;
-  hil_gps_msg.vd = -gps_msg->velocity_up() * 100.0;
+  if (world_->SimTime().Double() < 15.0) {
+    hil_gps_msg.fix_type = 0;
+    hil_gps_msg.lat = 0;
+    hil_gps_msg.lon = 0;
+    hil_gps_msg.alt = 0.0;
+    hil_gps_msg.eph = 1e9;
+    hil_gps_msg.epv = 1e9;
+    hil_gps_msg.vel = 0.0;
+    hil_gps_msg.vn = 0.0;
+    hil_gps_msg.ve = 0.0;
+    hil_gps_msg.vd = 0.0;
+    hil_gps_msg.satellites_visible = 0;
+  } else {
+    hil_gps_msg.fix_type = 3;
+    hil_gps_msg.lat = gps_msg->latitude_deg() * 1e7;
+    hil_gps_msg.lon = gps_msg->longitude_deg() * 1e7;
+    hil_gps_msg.alt = gps_msg->altitude() * 1000.0;
+    hil_gps_msg.eph = gps_msg->eph() * 100.0;
+    hil_gps_msg.epv = gps_msg->epv() * 100.0;
+    hil_gps_msg.vel = gps_msg->velocity() * 100.0;
+    hil_gps_msg.vn = gps_msg->velocity_north() * 100.0;
+    hil_gps_msg.ve = gps_msg->velocity_east() * 100.0;
+    hil_gps_msg.vd = -gps_msg->velocity_up() * 100.0;
+    hil_gps_msg.satellites_visible = 10;
+  }
   // MAVLINK_HIL_GPS_T CoG is [0, 360]. math::Angle::Normalize() is [-pi, pi].
   ignition::math::Angle cog(atan2(gps_msg->velocity_east(), gps_msg->velocity_north()));
   cog.Normalize();
   hil_gps_msg.cog = static_cast<uint16_t>(GetDegrees360(cog) * 100.0);
-  hil_gps_msg.satellites_visible = 10;
 
   // send HIL_GPS Mavlink msg
   mavlink_message_t msg;
