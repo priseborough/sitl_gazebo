@@ -140,6 +140,7 @@ private:
   static constexpr double hgtLim = 5.0f;
   int numSats = 0;
   static constexpr int numSatsMax = 15;
+  double updateDt = 0;
 
 };     // class GAZEBO_VISIBLE GpsPlugin
 }      // namespace gazebo

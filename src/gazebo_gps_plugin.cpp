@@ -171,8 +171,12 @@ void GpsPlugin::OnUpdate(const common::UpdateInfo&){
     // number of satellites visible goes to zero
     numSats = 0;
   } else if (numSats < numSatsMax) {
-    // number of sats recovers incrementally
-    numSats ++;
+    // number of sats recovers incrementally at about 2 to 3 per second
+    updateDt += dt;
+    if (updateDt > 0.4) {
+      numSats ++;
+      updateDt = 0.0;
+    }
   }
 
   // assume reported accuracy asymptotically approaches the best value with a time constant as satellite count recovers
@@ -195,7 +199,7 @@ void GpsPlugin::OnUpdate(const common::UpdateInfo&){
     std_xy += std_vxyz * dt;
   }
 
-  // assume vertical accuracy is half horizontal
+  // assume vertical error is twice horizontal
   std_z = 2.0 * std_xy;
 
   // fill SITLGps msg
