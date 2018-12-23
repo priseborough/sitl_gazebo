@@ -595,6 +595,11 @@ void GazeboMavlinkInterface::SendSensorMessages()
 
   float declination = get_mag_declination(groundtruth_lat_rad, groundtruth_lon_rad);
 
+  // modify with height
+  float decl_hgt_scaler = 0.1f / fmaxf(-pos_n.Z(), 0.1f);
+  decl_hgt_scaler *= decl_hgt_scaler;
+  declination += M_PI_2 * decl_hgt_scaler;
+
   ignition::math::Quaterniond q_dn(0.0, 0.0, declination);
   ignition::math::Vector3d mag_n = q_dn.RotateVector(mag_d_);
 
